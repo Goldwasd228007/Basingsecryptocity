@@ -1,0 +1,1026 @@
+<html><head><base href="https://www.worldisometricgame.com/%D0%B4%D0%BE%D0%B1%D0%B0%D0%B2%D1%8C%20%D0%BC%D1%83%D0%BB%D1%8C%D1%82%D0%B8%D0%BF%D0%BB%D0%B5%D0%B5%D1%80">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Изометрический Мир - Мультиплеер</title>
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+  #game-container {
+    width: 100%;
+    height: 100%;
+    background-color: #87CEEB;
+  }
+  .tile {
+    fill: #8FBC8F;
+    stroke: #006400;
+    stroke-width: 0.5;
+    cursor: pointer;
+  }
+  .tile:hover {
+    fill: #90EE90;
+  }
+  .building {
+    cursor: pointer;
+    transition: fill 0.3s;
+  }
+  .building:hover {
+    fill: #FFD700;
+  }
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+  }
+  .player {
+    stroke: black;
+    stroke-width: 1;
+  }
+  #monster {
+    fill: purple;
+    stroke: black;
+    stroke-width: 1;
+  }
+  .health-bar {
+    fill: green;
+  }
+  .tree {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .tree:hover {
+    transform: scale(1.1);
+  }
+  #chat-container {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 450px;
+    height: 200px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+  }
+  #chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    font-size: 14px;
+  }
+  #chat-input {
+    display: flex;
+    padding: 10px;
+  }
+  #chat-input input {
+    flex-grow: 1;
+    margin-right: 5px;
+  }
+  #chat-controls {
+    position: absolute;
+    top: -30px;
+    left: 0;
+    display: flex;
+  }
+  .chat-button {
+    width: 60px;
+    height: 30px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    border-radius: 5px 5px 0 0;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 5px;
+  }
+  #chat-toggle svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease-in-out;
+  }
+  .chat-type-active {
+    background-color: #4CAF50;
+    color: white;
+  }
+  #experience-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background-color: #ddd;
+  }
+  #experience-progress {
+    width: 0;
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.5s ease-in-out;
+  }
+  #building-menu {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 5px;
+    padding: 10px;
+    display: none;
+  }
+  #building-menu button {
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 5px;
+    cursor: pointer;
+  }
+  #auth-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  #auth-container input {
+    display: block;
+    width: 200px;
+    margin: 10px auto;
+    padding: 5px;
+  }
+  #auth-container button {
+    margin: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  #player-list {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #player-list h3 {
+    margin-top: 0;
+  }
+  .player-item {
+    margin-bottom: 5px;
+  }
+</style>
+</head>
+<body>
+<div id="experience-bar">
+  <div id="experience-progress"></div>
+</div>
+<div id="game-container"></div>
+<div id="ui">
+  <h2>Мир Строителя</h2>
+  <p>Деньги: <span id="money">500 / 1000</span></p>
+  <p>Рабочие: <span id="workers">3 / 3</span></p>
+  <p>Используйте клавиши WASD для передвижения</p>
+</div>
+
+<div id="player-list">
+  <h3>Игроки онлайн:</h3>
+</div>
+
+<div id="building-menu">
+  <h3>Меню строительства</h3>
+  <button id="build-main">Главное здание (100$)</button>
+  <button id="build-hobbit-house">Дом хоббита (25$)</button>
+  <button id="cancel-build">Отмена</button>
+</div>
+
+<div id="chat-container">
+  <div id="chat-controls">
+    <button id="chat-toggle" class="chat-button">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 10l5 5 5-5z"/>
+      </svg>
+    </button>
+    <button id="general-button" class="chat-button chat-type-active">Общий</button>
+    <button id="banya-button" class="chat-button">Баня</button>
+  </div>
+  <div id="chat-messages"></div>
+  <div id="chat-input">
+    <input type="text" id="chat-message-input" placeholder="Введите сообщение...">
+    <button id="chat-send-button">Отправить</button>
+  </div>
+</div>
+
+<div id="auth-container">
+  <h2>Авторизация</h2>
+  <input type="text" id="username" placeholder="Имя пользователя">
+  <input type="password" id="password" placeholder="Пароль">
+  <button id="login-button">Войти</button>
+  <button id="register-button">Зарегистрироваться</button>
+</div>
+
+<audio id="coin-sound" src="https://assets.mixkit.co/active_storage/sfx/2329/2329-preview.mp3" preload="auto"></audio>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+// Инициализация Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDVWAUUaZX5B8Eetp2Njvfgvxf3cI38F0s",
+  authDomain: "worldisometricgame.firebaseapp.com",
+  projectId: "worldisometricgame",
+  storageBucket: "worldisometricgame.appspot.com",
+  messagingSenderId: "842136196694",
+  appId: "1:842136196694:web:4c8a17a93df73a5e0fff01",
+  databaseURL: "https://worldisometricgame-default-rtdb.europe-west1.firebasedatabase.app"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const rtdb = firebase.database();
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+const tileSize = 90;
+const mapSize = 200;
+
+const svg = d3.select("#game-container")
+  .append("svg")
+  .attr("width", width)
+  .attr("height", height);
+
+const container = svg.append("g");
+
+function createIsometricTile(x, y) {
+  const isoX = (x - y) * tileSize;
+  const isoY = (x + y) * tileSize / 2;
+  return `M${isoX},${isoY} l${tileSize},${tileSize/2} l-${tileSize},${tileSize/2} l-${tileSize},-${tileSize/2} Z`;
+}
+
+for (let y = 0; y < mapSize; y++) {
+  for (let x = 0; x < mapSize; x++) {
+    container.append("path")
+      .attr("d", createIsometricTile(x, y))
+      .attr("class", "tile")
+      .attr("data-x", x)
+      .attr("data-y", y);
+  }
+}
+
+let money = 500;
+const maxMoney = 1000;
+let workers = 3;
+let maxWorkers = 3;
+const moneyDisplay = document.getElementById("money");
+const workersDisplay = document.getElementById("workers");
+const buildingMenu = document.getElementById("building-menu");
+const buildMainButton = document.getElementById("build-main");
+const buildHobbitHouseButton = document.getElementById("build-hobbit-house");
+const cancelBuildButton = document.getElementById("cancel-build");
+let selectedBuildingType = null;
+let hasMainBuilding = false;
+let selectedTile = null;
+
+let experience = 0;
+const maxExperience = 1000;
+const experienceProgress = document.getElementById("experience-progress");
+
+function updateExperience(amount) {
+  experience = Math.min(experience + amount, maxExperience);
+  const percentage = (experience / maxExperience) * 100;
+  experienceProgress.style.width = percentage + "%";
+}
+
+function updateMoney() {
+  moneyDisplay.textContent = `${money} / ${maxMoney}`;
+}
+
+function updateWorkers() {
+  workersDisplay.textContent = `${workers} / ${maxWorkers}`;
+}
+
+function showBuildingMenu(x, y) {
+  const isoX = (x - y) * tileSize;
+  const isoY = (x + y) * tileSize / 2;
+  buildingMenu.style.display = "block";
+  buildingMenu.style.left = `${isoX + width / 2}px`;
+  buildingMenu.style.top = `${isoY + height / 2 - 100}px`;
+  selectedTile = { x, y };
+
+  if (!hasMainBuilding) {
+    buildMainButton.style.display = "block";
+    buildHobbitHouseButton.style.display = "none";
+  } else {
+    buildMainButton.style.display = "none";
+    buildHobbitHouseButton.style.display = "block";
+  }
+}
+
+function hideBuildingMenu() {
+  buildingMenu.style.display = "none";
+  selectedTile = null;
+}
+
+buildMainButton.addEventListener("click", () => {
+  selectedBuildingType = "main";
+  buildBuilding(selectedTile.x, selectedTile.y, selectedBuildingType);
+  hideBuildingMenu();
+});
+
+buildHobbitHouseButton.addEventListener("click", () => {
+  selectedBuildingType = "hobbit-house";
+  buildBuilding(selectedTile.x, selectedTile.y, selectedBuildingType);
+  hideBuildingMenu();
+});
+
+cancelBuildButton.addEventListener("click", hideBuildingMenu);
+
+function buildBuilding(x, y, type) {
+  let cost, color, width, height, maxHealth, constructionTime, workersRequired;
+  switch (type) {
+    case "main":
+      if (hasMainBuilding) {
+        alert("Вы уже построили главное здание!");
+        return;
+      }
+      cost = 100;
+      color = "#8B4513";
+      width = 90;
+      height = 135;
+      maxHealth = 200;
+      constructionTime = 3;
+      workersRequired = 3;
+      break;
+    case "hobbit-house":
+      cost = 25;
+      color = "#228B22";
+      width = 75;
+      height = 60;
+      maxHealth = 48;
+      constructionTime = 40;
+      workersRequired = 2;
+      break;
+  }
+
+  if (money >= cost && workers >= workersRequired) {
+    money -= cost;
+    workers -= workersRequired;
+    updateMoney();
+    updateWorkers();
+    const isoX = (x - y) * tileSize;
+    const isoY = (x + y) * tileSize / 2;
+
+    const building = container.append("g")
+      .attr("class", "building")
+      .attr("data-type", type)
+      .attr("data-level", 1)
+      .attr("data-x", x)
+      .attr("data-y", y)
+      .attr("data-health", maxHealth)
+      .attr("data-construction-progress", 0);
+
+    building.append("rect")
+      .attr("x", isoX - width / 2)
+      .attr("y", isoY - height)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", "rgba(128, 128, 128, 0.5)");
+
+    building.append("rect")
+      .attr("class", "health-bar")
+      .attr("x", isoX - width / 2)
+      .attr("y", isoY - height - 15)
+      .attr("width", width)
+      .attr("height", 9);
+
+    building.append("rect")
+      .attr("class", "construction-bar")
+      .attr("x", isoX - width / 2)
+      .attr("y", isoY - height - 30)
+      .attr("width", 0)
+      .attr("height", 9)
+      .attr("fill", "blue");
+
+    const constructionInterval = setInterval(() => {
+      const progress = parseInt(building.attr("data-construction-progress")) + 1;
+      building.attr("data-construction-progress", progress);
+      building.select(".construction-bar")
+        .attr("width", (progress / constructionTime) * width);
+
+      if (progress >= constructionTime) {
+        clearInterval(constructionInterval);
+        building.select("rect").attr("fill", color);
+        building.select(".construction-bar").remove();
+        workers += workersRequired;
+        updateWorkers();
+
+        if (type === "hobbit-house") {
+          maxWorkers += 2;
+          workers = Math.min(workers + 2, maxWorkers);
+          updateWorkers();
+        }
+
+        if (type === "main") {
+          hasMainBuilding = true;
+        }
+
+        updateExperience(50);
+        saveBuildingData(building);
+      }
+    }, 1000);
+
+    if (type === "main") {
+      building.on("click", function() {
+        const currentLevel = parseInt(d3.select(this).attr("data-level"));
+        if (currentLevel < 24 && money >= 50) {
+          money -= 50;
+          updateMoney();
+          const newLevel = currentLevel + 1;
+          d3.select(this).attr("data-level", newLevel);
+          d3.select(this).select("rect")
+            .attr("height", height + newLevel * 6)
+            .attr("y", isoY - (height + newLevel * 6))
+            .attr("fill", d3.interpolateReds(newLevel / 24));
+          updateExperience(25);
+          saveBuildingData(d3.select(this));
+        }
+      });
+    } else if (type === "hobbit-house") {
+      building.on("click", function() {
+        alert("Дом хоббита (Лягушачья нора 1)\nПрочность: 48\nДаёт славы при взрыве: 1\nВыпадает редко при взрыве: дерево - 5");
+      });
+    }
+  } else {
+    if (money < cost) {
+      alert("Недостаточно денег для постройки!");
+    } else {
+      alert("Недостаточно рабочих для постройки!");
+    }
+  }
+}
+
+container.selectAll(".tile").on("click", function() {
+  const x = parseInt(d3.select(this).attr("data-x"));
+  const y = parseInt(d3.select(this).attr("data-y"));
+  showBuildingMenu(x, y);
+});
+
+// Игрок
+let playerX = 0;
+let playerY = 0;
+let currentUserId = null;
+
+function createPlayerCircle(userId, username) {
+  const player = container.append("circle")
+    .attr("r", 15)
+    .attr("class", "player")
+    .attr("id", `player-${userId}`)
+    .attr("fill", getRandomColor());
+
+  const playerName = container.append("text")
+    .attr("id", `player-name-${userId}`)
+    .attr("text-anchor", "middle")
+    .attr("fill", "white")
+    .attr("font-size", "12px")
+    .text(username);
+
+  return { circle: player, name: playerName };
+}
+
+function getRandomColor() {
+  const letters = '0123456789ABCDEF';
+  let color = '#';
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+function updatePlayerPosition(userId, x, y) {
+  const isoX = (x - y) * tileSize;
+  const isoY = (x + y) * tileSize / 2;
+  
+  d3.select(`#player-${userId}`)
+    .attr("cx", isoX)
+    .attr("cy", isoY - 30);
+  
+  d3.select(`#player-name-${userId}`)
+    .attr("x", isoX)
+    .attr("y", isoY - 45);
+
+  if (userId === currentUserId) {
+    // Центрирование карты на текущем игроке
+    const translateX = width / 2 - isoX;
+    const translateY = height / 2 - isoY;
+    container.attr("transform", `translate(${translateX}, ${translateY})`);
+  }
+}
+
+document.addEventListener("keydown", (event) => {
+  if (!currentUserId) return;
+
+  let moved = false;
+  switch(event.key.toLowerCase()) {
+    case "w":
+      if (playerY > 0) {
+        playerY--;
+        moved = true;
+      }
+      break;
+    case "s":
+      if (playerY < mapSize - 1) {
+        playerY++;
+        moved = true;
+      }
+      break;
+    case "a":
+      if (playerX > 0) {
+        playerX--;
+        moved = true;
+      }
+      break;
+    case "d":
+      if (playerX < mapSize - 1) {
+        playerX++;
+        moved = true;
+      }
+      break;
+  }
+
+  if (moved) {
+    updatePlayerPosition(currentUserId, playerX, playerY);
+    updateExperience(1);
+    hideBuildingMenu();
+    rtdb.ref(`players/${currentUserId}/position`).set({ x: playerX, y: playerY });
+  }
+});
+
+// Монстр
+let monsterX = Math.floor(Math.random() * mapSize);
+let monsterY = Math.floor(Math.random() * mapSize);
+
+const monster = container.append("circle")
+  .attr("r", 21)
+  .attr("id", "monster");
+
+function updateMonsterPosition() {
+  const isoX = (monsterX - monsterY) * tileSize;
+  const isoY = (monsterX + monsterY) * tileSize / 2;
+  monster.attr("cx", isoX)
+         .attr("cy", isoY - 30);
+}
+
+function moveMonster() {
+  const dx = Math.floor(Math.random() * 3) - 1;
+  const dy = Math.floor(Math.random() * 3) - 1;
+
+  if (monsterX + dx >= 0 && monsterX + dx < mapSize) monsterX += dx;
+  if (monsterY + dy >= 0 && monsterY + dy < mapSize) monsterY += dy;
+
+  updateMonsterPosition();
+  checkForBuildings();
+  rtdb.ref('monster').set({ x: monsterX, y: monsterY });
+}
+
+function checkForBuildings() {
+  const buildings = container.selectAll(".building");
+  buildings.each(function() {
+    const building = d3.select(this);
+    const buildingX = parseInt(building.attr("data-x"));
+    const buildingY = parseInt(building.attr("data-y"));
+
+    if (Math.abs(monsterX - buildingX) <= 1 && Math.abs(monsterY - buildingY) <= 1) {
+      attackBuilding(building);
+    }
+  });
+}
+
+function attackBuilding(building) {
+  let health = parseInt(building.attr("data-health"));
+  const damage = 10;
+  health -= damage;
+
+  if (health <= 0) {
+    if (building.attr("data-type") === "main") {
+      hasMainBuilding = false;
+    } else if (building.attr("data-type") === "hobbit-house") {
+      maxWorkers -= 2;
+      workers = Math.min(workers, maxWorkers);
+      updateWorkers();
+    }
+    building.remove();
+    updateExperience(-25);
+    removeBuildingData(building);
+  } else {
+    building.attr("data-health", health);
+    const maxHealth = building.attr("data-type") === "main" ? 200 : 48;
+    const healthPercentage = health / maxHealth;
+    building.select(".health-bar")
+      .attr("width", building.select("rect").attr("width") * healthPercentage)
+      .attr("fill", d3.interpolateRgb("red", "green")(healthPercentage));
+    saveBuildingData(building);
+  }
+}
+
+// Добавление мини-деревьев
+function addTrees() {
+  const treesCount = Math.floor(mapSize * mapSize * 0.025);
+
+  for (let i = 0; i < treesCount; i++) {
+    const x = Math.floor(Math.random() * mapSize);
+    const y = Math.floor(Math.random() * mapSize);
+    const isoX = (x - y) * tileSize;
+    const isoY = (x + y) * tileSize / 2;
+
+    const tree = container.append("g")
+      .attr("class", "tree")
+      .attr("data-x", x)
+      .attr("data-y", y);
+
+    // Ствол дерева
+    tree.append("rect")
+      .attr("x", isoX - 4)
+      .attr("y", isoY - 24)
+      .attr("width", 8)
+      .attr("height", 24)
+      .attr("fill", "#8B4513");
+
+    // Крона дерева (три слоя)
+    const colors = ["#228B22", "#32CD32", "#90EE90"];
+    for (let j = 0; j < 3; j++) {
+      tree.append("circle")
+        .attr("cx", isoX)
+        .attr("cy", isoY - 24 - j * 8)
+        .attr("r", 12 - j * 2)
+        .attr("fill", colors[j]);
+    }
+
+    tree.on("click", function() {
+      if (money < maxMoney) {
+        d3.select("#coin-sound").node().play();
+        money = Math.min(money + 5, maxMoney);
+        updateMoney();
+        d3.select(this).remove();
+        updateExperience(5);
+        saveUserData();
+      }
+    });
+  }
+}
+
+addTrees();
+
+setInterval(moveMonster, 4000);
+
+updateMoney();
+updateWorkers();
+updateMonsterPosition();
+
+// Чат
+const chatContainer = document.getElementById('chat-container');
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-message-input');
+const chatSendButton = document.getElementById('chat-send-button');
+const chatToggle = document.getElementById('chat-toggle');
+const generalButton = document.getElementById('general-button');
+const banyaButton = document.getElementById('banya-button');
+
+let currentChatType = 'general';
+
+function addChatMessage(message, type = currentChatType, username = "Система") {
+  const messageElement = document.createElement('p');
+  messageElement.textContent = `${username}: ${message}`;
+  messageElement.classList.add(type + '-message');
+  chatMessages.appendChild(messageElement);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sendChatMessage() {
+  const message = chatInput.value.trim();
+  if (message && currentUserId) {
+    const username = auth.currentUser.displayName || "Аноним";
+    rtdb.ref('chat').push({
+      userId: currentUserId,
+      username: username,
+      message: message,
+      type: currentChatType,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+    chatInput.value = '';
+    updateExperience(2);
+  }
+}
+
+chatSendButton.addEventListener('click', sendChatMessage);
+chatInput.addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    sendChatMessage();
+  }
+});
+
+let isChatVisible = true;
+
+chatToggle.addEventListener('click', function() {
+  isChatVisible = !isChatVisible;
+  chatContainer.style.transform = isChatVisible ? 'translateY(0)' : 'translateY(calc(100% - 30px))';
+  chatToggle.querySelector('svg').style.transform = isChatVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+});
+
+generalButton.addEventListener('click', function() {
+  currentChatType = 'general';
+  generalButton.classList.add('chat-type-active');
+  banyaButton.classList.remove('chat-type-active');
+  addChatMessage("Вы перешли в общий чат.");
+});
+
+banyaButton.addEventListener('click', function() {
+  currentChatType = 'banya';
+  banyaButton.classList.add('chat-type-active');
+  generalButton.classList.remove('chat-type-active');
+  addChatMessage("Вы перешли в чат бани. Здесь общаются забаненные игроки.");
+});
+
+// Авторизация и регистрация
+const authContainer = document.getElementById('auth-container');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+const loginButton = document.getElementById('login-button');
+const registerButton = document.getElementById('register-button');
+
+loginButton.addEventListener('click', () => {
+  const email = usernameInput.value + "@example.com"; // Временное решение для демонстрации
+  const password = passwordInput.value;
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      // Вход выполнен успешно
+      const user = userCredential.user;
+      console.log("Вход выполнен:", user);
+      authContainer.style.display = 'none';
+      currentUserId = user.uid;
+      loadUserData(user.uid);
+    })
+    .catch((error) => {
+      console.error("Ошибка входа:", error);
+      alert("Ошибка входа: " + error.message);
+    });
+});
+
+registerButton.addEventListener('click', () => {
+  const email = usernameInput.value + "@example.com"; // Временное решение для демонстрации
+  const password = passwordInput.value;
+  
+  auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      // Регистрация выполнена успешно
+      const user = userCredential.user;
+      console.log("Пользователь зарегистрирован:", user);
+      createUserData(user.uid, usernameInput.value);
+      authContainer.style.display = 'none';
+      currentUserId = user.uid;
+    })
+    .catch((error) => {
+      console.error("Ошибка регистрации:", error);
+      alert("Ошибка регистрации: " + error.message);
+    });
+});
+
+function createUserData(userId, username) {
+  const userData = {
+    username: username,
+    money: money,
+    workers: workers,
+    maxWorkers: maxWorkers,
+    experience: experience,
+    position: { x: playerX, y: playerY },
+    buildings: []
+  };
+
+  rtdb.ref(`players/${userId}`).set(userData)
+    .then(() => {
+      console.log("Данные пользователя созданы");
+      loadUserData(userId);
+    })
+    .catch((error) => {
+      console.error("Ошибка при создании данных пользователя:", error);
+    });
+}
+
+function loadUserData(userId) {
+  rtdb.ref(`players/${userId}`).once('value')
+    .then((snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        money = data.money;
+        workers = data.workers;
+        maxWorkers = data.maxWorkers;
+        experience = data.experience;
+        playerX = data.position.x;
+        playerY = data.position.y;
+        updateMoney();
+        updateWorkers();
+        updateExperience(0);
+        createPlayerCircle(userId, data.username);
+        updatePlayerPosition(userId, playerX, playerY);
+        loadBuildings(data.buildings);
+      } else {
+        console.log("Данные пользователя не найдены");
+      }
+    })
+    .catch((error) => {
+      console.error("Ошибка при загрузке данных пользователя:", error);
+    });
+}
+
+function saveUserData() {
+  if (!currentUserId) return;
+
+  const userData = {
+    money: money,
+    workers: workers,
+    maxWorkers: maxWorkers,
+    experience: experience,
+    position: { x: playerX, y: playerY }
+  };
+
+  rtdb.ref(`players/${currentUserId}`).update(userData)
+    .then(() => console.log("Данные пользователя сохранены"))
+    .catch((error) => console.error("Ошибка при сохранении данных пользователя:", error));
+}
+
+function saveBuildingData(building) {
+  if (!currentUserId) return;
+
+  const buildingData = {
+    type: building.attr("data-type"),
+    level: parseInt(building.attr("data-level")),
+    x: parseInt(building.attr("data-x")),
+    y: parseInt(building.attr("data-y")),
+    health: parseInt(building.attr("data-health"))
+  };
+
+  rtdb.ref(`players/${currentUserId}/buildings`).push(buildingData)
+    .then(() => console.log("Данные здания сохранены"))
+    .catch((error) => console.error("Ошибка при сохранении данных здания:", error));
+}
+
+function removeBuildingData(building) {
+  if (!currentUserId) return;
+
+  const x = parseInt(building.attr("data-x"));
+  const y = parseInt(building.attr("data-y"));
+
+  rtdb.ref(`players/${currentUserId}/buildings`).orderByChild("x").equalTo(x).once("value", snapshot => {
+    snapshot.forEach(childSnapshot => {
+      if (childSnapshot.val().y === y) {
+        childSnapshot.ref.remove()
+          .then(() => console.log("Данные здания удалены"))
+          .catch((error) => console.error("Ошибка при удалении данных здания:", error));
+      }
+    });
+  });
+}
+
+function loadBuildings(buildings) {
+  if (!buildings) return;
+
+  Object.values(buildings).forEach(buildingData => {
+    const building = container.append("g")
+      .attr("class", "building")
+      .attr("data-type", buildingData.type)
+      .attr("data-level", buildingData.level)
+      .attr("data-x", buildingData.x)
+      .attr("data-y", buildingData.y)
+      .attr("data-health", buildingData.health);
+
+    const isoX = (buildingData.x - buildingData.y) * tileSize;
+    const isoY = (buildingData.x + buildingData.y) * tileSize / 2;
+
+    let color, width, height;
+    switch (buildingData.type) {
+      case "main":
+        color = d3.interpolateReds(buildingData.level / 24);
+        width = 90;
+        height = 135 + buildingData.level * 6;
+        hasMainBuilding = true;
+        break;
+      case "hobbit-house":
+        color = "#228B22";
+        width = 75;
+        height = 60;
+        break;
+    }
+
+    building.append("rect")
+      .attr("x", isoX - width / 2)
+      .attr("y", isoY - height)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", color);
+
+    building.append("rect")
+      .attr("class", "health-bar")
+      .attr("x", isoX - width / 2)
+      .attr("y", isoY - height - 15)
+      .attr("width", width * (buildingData.health / (buildingData.type === "main" ? 200 : 48)))
+      .attr("height", 9)
+      .attr("fill", d3.interpolateRgb("red", "green")(buildingData.health / (buildingData.type === "main" ? 200 : 48)));
+
+    if (buildingData.type === "main") {
+      building.on("click", function() {
+        const currentLevel = parseInt(d3.select(this).attr("data-level"));
+        if (currentLevel < 24 && money >= 50) {
+          money -= 50;
+          updateMoney();
+          const newLevel = currentLevel + 1;
+          d3.select(this).attr("data-level", newLevel);
+          d3.select(this).select("rect")
+            .attr("height", height + 6)
+            .attr("y", isoY - (height + 6))
+            .attr("fill", d3.interpolateReds(newLevel / 24));
+          updateExperience(25);
+          saveBuildingData(d3.select(this));
+        }
+      });
+    } else if (buildingData.type === "hobbit-house") {
+      building.on("click", function() {
+        alert("Дом хоббита (Лягушачья нора 1)\nПрочность: 48\nДаёт славы при взрыве: 1\nВыпадает редко при взрыве: дерево - 5");
+      });
+    }
+  });
+}
+
+// Обновление списка игроков
+const playerList = document.getElementById('player-list');
+
+function updatePlayerList(players) {
+  playerList.innerHTML = '<h3>Игроки онлайн:</h3>';
+  Object.entries(players).forEach(([userId, playerData]) => {
+    const playerItem = document.createElement('div');
+    playerItem.className = 'player-item';
+    playerItem.textContent = playerData.username || 'Аноним';
+    playerList.appendChild(playerItem);
+  });
+}
+
+// Слушатели базы данных реального времени
+rtdb.ref('players').on('value', (snapshot) => {
+  const players = snapshot.val();
+  if (players) {
+    updatePlayerList(players);
+    Object.entries(players).forEach(([userId, playerData]) => {
+      if (userId !== currentUserId) {
+        let playerElement = d3.select(`#player-${userId}`);
+        if (playerElement.empty()) {
+          const { circle, name } = createPlayerCircle(userId, playerData.username || 'Аноним');
+          playerElement = circle;
+        }
+        updatePlayerPosition(userId, playerData.position.x, playerData.position.y);
+      }
+    });
+  }
+});
+
+rtdb.ref('chat').on('child_added', (snapshot) => {
+  const message = snapshot.val();
+  addChatMessage(message.message, message.type, message.username);
+});
+
+rtdb.ref('monster').on('value', (snapshot) => {
+  const monsterData = snapshot.val();
+  if (monsterData) {
+    monsterX = monsterData.x;
+    monsterY = monsterData.y;
+    updateMonsterPosition();
+  }
+});
+
+// Автоматическое сохранение данных пользователя
+setInterval(saveUserData, 60000); // Сохранение каждую минуту
+
+// Инициализация игры
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    currentUserId = user.uid;
+    authContainer.style.display = 'none';
+    loadUserData(user.uid);
+  } else {
+    authContainer.style.display = 'block';
+    currentUserId = null;
+  }
+});
+
+</script>
+</body>
+</html>
